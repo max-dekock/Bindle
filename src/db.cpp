@@ -14,8 +14,6 @@ void Database::insert(std::string key, std::string value) {
 boost::optional<std::string> Database::get(const std::string& key) {
 	auto [ ptr, size ] = mfile_.find<char>(key.c_str());
 	if (ptr) {
-		std::cout << ptr << std::endl;
-		std::cout << size << std::endl;
 		return std::string(ptr, size);
 	} else {
 		return boost::none;
