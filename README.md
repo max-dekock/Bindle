@@ -100,5 +100,5 @@ whatever reason.
 
 ### UML Sequence Diagram
 
-[TODO]
+![uml_sequence_diagram](https://github.com/user-attachments/assets/5871dd1d-a7b4-436c-af78-d216f9ed2e01)
 
