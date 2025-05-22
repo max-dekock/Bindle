@@ -4,7 +4,7 @@
 
 using namespace boost::interprocess;
 
-Database::Database(const char* filename) : mfile_(open_or_create, filename, 65536) {}
+Database::Database(const char* filename) : mfile_(open_or_create, filename, 1048576) {}
 
 void Database::insert(std::string key, std::string value) {
 	remove(key);

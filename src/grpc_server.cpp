@@ -4,6 +4,8 @@
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 
+#include <boost/interprocess/exceptions.hpp>
+
 #include <iostream>
 #include <string>
 #include <memory>
@@ -29,7 +31,6 @@ public:
 	explicit BindleServerImpl(Database db) : db_(std::move(db)) {}
 
 	Status GetValue(ServerContext* context, const Key* key, GetResult* result) {
-		std::cout << "Getting value for key " << key->key() << std::endl;
 		auto value = db_.get(key->key());
 		if (value) {
 			result->set_value(*value);
@@ -38,13 +39,16 @@ public:
 	}
 
 	Status InsertValue(ServerContext* context, const KeyValue* kv, InsertResult* result) {
-		std::cout << "Inserting value " << kv->value() << " for key " << kv->key() << std::endl;
-		db_.insert(kv->key(), kv->value());
-		return Status::OK;
+		try {
+			db_.insert(kv->key(), kv->value());
+			return Status::OK;
+		} catch (const boost::interprocess::bad_alloc& e) {
+			std::cerr << "Failed to insert: out of space: " << e.what() << std::endl;
+			return Status(grpc::StatusCode::RESOURCE_EXHAUSTED, "Out of memory");
+		}
 	}
 
 	Status RemoveKey(ServerContext* context, const Key* key, RemoveResult* result) {
-		std::cout << "Removing key " << key->key() << std::endl;
 		db_.remove(key->key());
 		return Status::OK;
 	}
@@ -53,10 +57,17 @@ private:
 	Database db_;
 };
 
-int main() {
-	Database db("db.bin");
-
-	db.insert("Foo", "Hello, world! For real this time!");
+int main(int argc, char **argv) {
+	const char *db_filename;
+	if (argc == 2) {
+		db_filename = argv[1];
+	} else if (argc == 1) {
+		db_filename = "db.bin";
+	} else {
+		std::cerr << "Usage: " << argv[0] << "[filename]" << std::endl;
+		return 1;
+	}
+	Database db(db_filename);
 
 	std::string server_address("0.0.0.0:50051");
 	BindleServerImpl service(std::move(db));
